@@ -7,16 +7,20 @@ from pathlib import Path
 strict_structure = False
 
 
-def validate_get_fields(file):
+def validate_get_fields_for_table_create(file, min_rows):
     """
-    Check if the provided csv file matches the structure required for creation
+    Check and return rows of csv as list of tuples
     :param file: .csv file
+    :param min_rows: Minimum number of rows the csv must contain
     :return: True if validated, otherwise throw exception
     """
+    if not file.is_file() or file.suffix != ".csv":
+        raise Exception("The provided path " + file + " does not point to a csv file")
+
     csv_file = open(file, "r")
     row_list = list(csv.reader(csv_file))
 
-    if len(row_list) < 3:
+    if len(row_list) < min_rows:
         raise Exception(str(file) + " does not possess the required csv structure. Refer to the sample csvs")
 
     return row_list
@@ -51,11 +55,11 @@ def get_file_map(base_dir):
         raise Exception("No csv files are present in the specified directory")
 
     for file in files:
-        if strict_structure and file.suffix != "csv":
+        if strict_structure and file.suffix != ".csv":
             raise Exception("Files with extensions other than .csv cannot be present in specified directory")
 
         if file.suffix == ".csv":
-            file_map[file.stem] = validate_get_fields(file)
+            file_map[file.stem] = validate_get_fields_for_table_create(file, 3)
 
     return file_map
 
@@ -84,21 +88,22 @@ def extract_table_create_data(row_list):
     return column_creation_maps
 
 
-def extract_table_data(row_list):
+def extract_table_data(row_list, n):
     """
     Extract table tows from all row as a list of tuples for persisting.
-    First 4 rows of csv used for table creation are header rows. Thus, returns rows 4 and onwards
+    First :param n rows of csv are metadata, header rows. Thus, returns rows n and onwards
     :param row_list: List of all rows in csv used for table creation
+    :param n: Represents how any rows in the start are header rows. Returns [n:]
     :return: Extracted list of tuples representing rows to be persisted
     """
-    return row_list[4:]
+    return row_list[n:]
 
 
 def extract_column_names(row_list):
     """
-    Extract names of columns from row list obtained from table creation csv. The first row contains all row names
+    Extract names of columns from row list obtained from table csv. The first row contains all row names
     :param row_list: List of all rows in csv used for table creation
-    :return: List of names present in table creation csv
+    :return: List of names present in table csv
     """
     return row_list[0]
 
@@ -110,7 +115,6 @@ def create_db_from_directory(directory_path="/home/user/Desktop/exql/exql/test_d
     :return: none
     """
     base_dir = Path(directory_path)
-
     csv_file_map = validate_and_get_csvs(base_dir)
 
     connection, cursor = open_cursor_and_connection()
@@ -119,10 +123,48 @@ def create_db_from_directory(directory_path="/home/user/Desktop/exql/exql/test_d
         file_content = csv_file_map[file_name]
         dao.create_table(cursor, base_dir.name, file_name, extract_table_create_data(file_content))
 
-        data_rows = extract_table_data(file_content)
+        data_rows = extract_table_data(file_content, 4)
         if data_rows:
             dao.insert_rows(cursor, connection, base_dir.name, file_name, extract_column_names(file_content), data_rows)
 
 
+def create_table_from_csv(db_name, csv_file_path="/home/user/Desktop/exql/exql/file3.csv"):
+    """
+    Create a Table from the specified csv file with name same as csv file name
+    :return: none
+    """
+    base_dir = Path(csv_file_path)
+    csv_file_data = validate_get_fields_for_table_create(base_dir, 3)
+
+    connection, cursor = open_cursor_and_connection()
+    dao.create_table(cursor, db_name, base_dir.stem, extract_table_create_data(csv_file_data))
+
+    data_rows = extract_table_data(csv_file_data, 4)
+    if data_rows:
+        dao.insert_rows(cursor, connection, db_name, base_dir.stem, extract_column_names(csv_file_data), data_rows)
+
+
+def insert_in_table(db_name, csv_file_path="/home/user/Desktop/exql/exql/test_dir/file1.csv", table_name=None):
+    """
+    Insert into existing table with name :param table_name. If table_name not passed, used csv file name as table name
+    :param db_name: Name of database
+    :param csv_file_path: Path of csv file containing rows to persists. First row must have column names
+    :param table_name: Name of table in which to persist. If not provided, use name of csv file
+    :return: None
+    """
+    base_dir = Path(csv_file_path)
+    csv_file_data = validate_get_fields_for_table_create(base_dir, 2)
+
+    if not table_name:
+        table_name = base_dir.stem
+
+    data_rows = extract_table_data(csv_file_data, 1)
+
+    connection, cursor = open_cursor_and_connection()
+    dao.insert_rows(cursor, connection, db_name, table_name, extract_column_names(csv_file_data), data_rows)
+
+
 if __name__ == '__main__':
-    create_db_from_directory()
+    # create_db_from_directory()
+    # create_table_from_csv("test_dir")
+    # insert_in_table("test_dir", "/home/user/Desktop/exql/exql/test_dir/file3.csv", "file1")
