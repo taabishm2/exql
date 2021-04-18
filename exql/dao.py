@@ -133,8 +133,6 @@ def select_rows(cursor, db_name, select_query):
     cursor.execute(MySql.USE_DB.format(db_name=db_name))
     cursor.execute(query)
 
-    print(cursor.fetchall())
-
 
 def get_delete_rows_data(column_names, row_deletion_data):
     """

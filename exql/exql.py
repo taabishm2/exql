@@ -112,7 +112,7 @@ def create_db_from_directory(directory_path="/home/user/Desktop/exql/exql/test_d
     """
     Create a Schema based on a directory specified. All valid csvs within the directory are converted into tables.
     If any data is present in the csv, the rows are also populated
-    :return: none
+    :return: None
     """
     base_dir = Path(directory_path)
     csv_file_map = validate_and_get_csvs(base_dir)
@@ -127,11 +127,12 @@ def create_db_from_directory(directory_path="/home/user/Desktop/exql/exql/test_d
         if data_rows:
             dao.insert_rows(cursor, connection, base_dir.name, file_name, extract_column_names(file_content), data_rows)
 
+    dao.close_cursor_connection(cursor, connection)
 
 def create_table_from_csv(db_name, csv_file_path="/home/user/Desktop/exql/exql/file3.csv"):
     """
     Create a Table from the specified csv file with name same as csv file name
-    :return: none
+    :return: None
     """
     base_dir = Path(csv_file_path)
     csv_file_data = validate_get_fields_for_table_create(base_dir, 3)
@@ -142,6 +143,8 @@ def create_table_from_csv(db_name, csv_file_path="/home/user/Desktop/exql/exql/f
     data_rows = extract_table_data(csv_file_data, 4)
     if data_rows:
         dao.insert_rows(cursor, connection, db_name, base_dir.stem, extract_column_names(csv_file_data), data_rows)
+
+    dao.close_cursor_connection(cursor, connection)
 
 
 def insert_in_table(db_name, csv_file_path="/home/user/Desktop/exql/exql/test_dir/file1.csv", table_name=None):
@@ -163,8 +166,48 @@ def insert_in_table(db_name, csv_file_path="/home/user/Desktop/exql/exql/test_di
     connection, cursor = open_cursor_and_connection()
     dao.insert_rows(cursor, connection, db_name, table_name, extract_column_names(csv_file_data), data_rows)
 
+    dao.close_cursor_connection(cursor, connection)
+
+
+def select_into_csv(db_name, full_select_query, destination_dir_path, destination_file_name):
+    connection, cursor = open_cursor_and_connection()
+    dao.select_rows(cursor, db_name, full_select_query)
+
+    row_list = cursor.fetchall()
+    column_names = cursor.column_names
+
+    dao.close_cursor_connection(cursor, connection)
+
+    write_to_new_csv(column_names, destination_dir_path, destination_file_name, row_list)
+
+
+def write_to_new_csv(column_names, destination_dir_path, destination_file_name, row_list):
+    """
+    Write list of rows fetched from the database into a new csv file at the specified location
+    :param column_names: List of column names for the table
+    :param destination_dir_path: Path of directory where csv should be saved
+    :param destination_file_name: Name to give the file when saving (including extension) e.g. "student_data.csv"
+    :param row_list: List of rows fetched from the database
+    :return: None
+    """
+    write_dir_path = Path(destination_dir_path)
+    if not write_dir_path.is_dir():
+        raise Exception(destination_dir_path + " is not a valid directory")
+
+    destination_dir_path = write_dir_path / destination_file_name
+    write_dir_path = Path(destination_dir_path)
+    if write_dir_path.exists() or write_dir_path.suffix != ".csv":
+        raise Exception(destination_file_name + " must refer to a valid, non-existing CSV file")
+
+    write_file = open(write_dir_path, mode='w')
+    csv_writer = csv.writer(write_file)
+    csv_writer.writerow(column_names)
+    csv_writer.writerows(row_list)
+    write_file.close()
+
 
 if __name__ == '__main__':
-    # create_db_from_directory()
-    # create_table_from_csv("test_dir")
-    # insert_in_table("test_dir", "/home/user/Desktop/exql/exql/test_dir/file3.csv", "file1")
+    #create_db_from_directory()
+    #create_table_from_csv("test_dir")
+    #insert_in_table("test_dir", "/home/user/Desktop/exql/exql/test_dir/file3.csv", "file1")
+    select_into_csv("test_dir", "SELECT * FROM file1 LIMIT 2;", "/home/user/Desktop/exql/exql/test_dir", "result.csv")
