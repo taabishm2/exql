@@ -170,6 +170,15 @@ def insert_in_table(db_name, csv_file_path="/home/user/Desktop/exql/exql/test_di
 
 
 def select_into_csv(db_name, full_select_query, destination_dir_path, destination_file_name):
+    """
+    Select rows read from a DB using the provided query into a csv
+    :param db_name: Name of database
+    :param full_select_query: Syntactically correct SQL query to run e.g. "SELECT * FROM myTable LIMIT 10;"
+    :param destination_dir_path: Path of valid, existing directory where csv is to be stored
+    :param destination_file_name: Name with with csv is to be saved (including extension) e.g. "results.csv".
+    No file with a similar should exist in the destination directory
+    :return:  None
+    """
     connection, cursor = open_cursor_and_connection()
     dao.select_rows(cursor, db_name, full_select_query)
 
@@ -206,8 +215,34 @@ def write_to_new_csv(column_names, destination_dir_path, destination_file_name, 
     write_file.close()
 
 
+def delete_from_db(db_name, deletion_csv, table_name=None):
+    """
+    Delete all rows matching conditions determined by the specified :param deletion_csv. :param deletion_csv must
+    contain column names in the first row and value in subsequent rows. Deletion query is created as follows:
+    "DELETE FROM :param table_name WHERE (col1=valA AND col2=valB) OR (col1=valX AND col2=valY) where col1, col2 are
+    column names and (valA,valB) and (valX,valY) are two rows in the csv
+    :param db_name: Name of database
+    :param deletion_csv: CSV containing column names and values to be used for deletion
+    :param table_name: Name of table from which to delete. If not provided, uses name of csv file
+    :return: None
+    """
+    base_dir = Path(deletion_csv)
+    csv_file_data = validate_get_fields_for_table_create(base_dir, 2)
+
+    if not table_name:
+        table_name = base_dir.stem
+
+    data_rows = extract_table_data(csv_file_data, 1)
+
+    connection, cursor = open_cursor_and_connection()
+    dao.delete_rows(cursor, connection, db_name, table_name, extract_column_names(csv_file_data), data_rows)
+
+    dao.close_cursor_connection(cursor, connection)
+
+
 if __name__ == '__main__':
     #create_db_from_directory()
     #create_table_from_csv("test_dir")
     #insert_in_table("test_dir", "/home/user/Desktop/exql/exql/test_dir/file3.csv", "file1")
-    select_into_csv("test_dir", "SELECT * FROM file1 LIMIT 2;", "/home/user/Desktop/exql/exql/test_dir", "result.csv")
+    #select_into_csv("test_dir", "SELECT * FROM file1 LIMIT 2;", "/home/user/Desktop/exql/exql/test_dir", "result.csv")
+    delete_from_db("test_dir","/home/user/Desktop/exql/exql/test_dir/file3.csv", "file1")
