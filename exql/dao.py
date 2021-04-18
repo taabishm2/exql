@@ -78,7 +78,7 @@ def create_table(cursor, db_name, table_name, field_data):
     :return: none
     """
     query = MySql.CREATE_TABLE
-    query = query.format(table_name=table_name, fields_data_list=get_create_table_field_data(field_data))
+    query = query.format(table_name=table_name, row_data_list=get_create_table_field_data(field_data))
 
     logger.info(query)
     cursor.execute(MySql.USE_DB.format(db_name=db_name))
@@ -177,6 +177,9 @@ def delete_rows(cursor, connection, db_name, table_name, column_names, row_delet
     cursor.execute(query)
     connection.commit()
 
+
+def delete_schema(cursor, db_name):
+    cursor.execute("DROP SCHEMA IF EXISTS " + db_name)
 
 if __name__ == '__main__':
     local_connection, local_cursor = open_cursor_connection("localhost", "root", "mysql@123")

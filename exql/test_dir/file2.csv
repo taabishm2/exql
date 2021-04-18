@@ -1,0 +1,9 @@
+dept_id,dept_name
+INT,VARCHAR(10)
+PRIMARY KEY,NOT NULL
+,
+1,'CSE'
+2,'ECE'
+3,'ITE'
+4,'MEC'
+5,'SCI'
