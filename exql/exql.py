@@ -1,10 +1,13 @@
 import dao
 import csv
-from logger import logger
+import configparser
+
 from pathlib import Path
 
-# TODO:Get from props
-strict_structure = False
+config = configparser.RawConfigParser()
+config.read('../config.properties')
+
+strict_structure = config.get('directory_validation', 'validation.strict_structure')
 
 
 def validate_get_fields_for_table_create(file, min_rows):
@@ -66,7 +69,10 @@ def get_file_map(base_dir):
 
 def open_cursor_and_connection():
     # TODO: Read from props
-    return dao.open_cursor_connection("localhost", "root", "mysql@123")
+    return dao.open_cursor_connection(config.get('database_connection', 'db.host'),
+                                      config.get('database_connection', 'db.username'),
+                                      config.get('database_connection', 'db.password'),
+                                      config.get('database_connection', 'db.port'))
 
 
 def extract_table_create_data(row_list):
@@ -128,6 +134,7 @@ def create_db_from_directory(directory_path="/home/user/Desktop/exql/exql/test_d
             dao.insert_rows(cursor, connection, base_dir.name, file_name, extract_column_names(file_content), data_rows)
 
     dao.close_cursor_connection(cursor, connection)
+
 
 def create_table_from_csv(db_name, csv_file_path="/home/user/Desktop/exql/exql/file3.csv"):
     """
@@ -201,12 +208,12 @@ def write_to_new_csv(column_names, destination_dir_path, destination_file_name, 
     """
     write_dir_path = Path(destination_dir_path)
     if not write_dir_path.is_dir():
-        raise Exception(destination_dir_path + " is not a valid directory")
+        raise Exception(str(destination_dir_path) + " is not a valid directory")
 
     destination_dir_path = write_dir_path / destination_file_name
     write_dir_path = Path(destination_dir_path)
     if write_dir_path.exists() or write_dir_path.suffix != ".csv":
-        raise Exception(destination_file_name + " must refer to a valid, non-existing CSV file")
+        raise Exception(str(write_dir_path) + " must refer to a valid, non-existing CSV file")
 
     write_file = open(write_dir_path, mode='w')
     csv_writer = csv.writer(write_file)
@@ -240,9 +247,45 @@ def delete_from_db(db_name, deletion_csv, table_name=None):
     dao.close_cursor_connection(cursor, connection)
 
 
+def get_select_all_query(table_name):
+    """
+    Returns a SELECT all query for the provided :param table_name
+    :param table_name: Name of table
+    :return: The string "SELECT * FROM :param table_name"
+    """
+    return "SELECT * FROM " + str(table_name)
+
+
+def write_db_to_dir(destination_path, db_name, table_list=None):
+    """
+    Write a DB to a directory at the specified :param destination_path
+    :param destination_path: Path where directory representing the DB must be stored
+    :param db_name: Name of DB to be written
+    :param table_list: Optional list of tables to write as csv. If not provided, writes all tables present
+    :return: None
+    """
+    base_dir = Path(destination_path)
+
+    destination_dir_path = base_dir / db_name
+    destination_dir_path.mkdir(parents=True, exist_ok=False)
+
+    if table_list:
+        for table_name in table_list:
+            select_into_csv(db_name, get_select_all_query(table_name), destination_dir_path.absolute(), table_name)
+    else:
+        connection, cursor = open_cursor_and_connection()
+        dao.get_all_table_names(cursor, db_name)
+        table_name_list = cursor.fetchall()
+
+        for table_name in table_name_list:
+            select_into_csv(db_name, get_select_all_query(table_name[0]), destination_dir_path.absolute(),
+                            table_name[0] + ".csv")
+
+
 if __name__ == '__main__':
     #create_db_from_directory()
     #create_table_from_csv("test_dir")
     #insert_in_table("test_dir", "/home/user/Desktop/exql/exql/test_dir/file3.csv", "file1")
     #select_into_csv("test_dir", "SELECT * FROM file1 LIMIT 2;", "/home/user/Desktop/exql/exql/test_dir", "result.csv")
-    delete_from_db("test_dir","/home/user/Desktop/exql/exql/test_dir/file3.csv", "file1")
+    #delete_from_db("test_dir","/home/user/Desktop/exql/exql/test_dir/file3.csv", "file1")
+    write_db_to_dir("/home/user/Desktop/exql/exql/test_dir/", "test_dir")

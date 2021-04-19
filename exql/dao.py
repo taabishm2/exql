@@ -3,7 +3,7 @@ import mysql.connector
 from sql import MySql
 
 
-def open_cursor_connection(host, username, password, port='3306'):
+def open_cursor_connection(host, username, password, port):
     """
     Connect to the MySQL DB at the specified host
     :param host: Host address for MySQL database
@@ -176,8 +176,19 @@ def delete_rows(cursor, connection, db_name, table_name, column_names, row_delet
     connection.commit()
 
 
-def delete_schema(cursor, db_name):
-    cursor.execute("DROP SCHEMA IF EXISTS " + db_name)
+def get_all_table_names(cursor, db_name):
+    """
+    Returns names of all the tables present in the specified DB
+    :param cursor: DB connection cursor
+    :param db_name: Name of Database in which to check talbes
+    :return: List of tables
+    """
+    query = "SELECT table_name FROM information_schema.tables WHERE table_schema = '{db_name}';"
+    query = query.format(db_name=db_name)
+
+    logger.info(query)
+    cursor.execute(query)
+
 
 if __name__ == '__main__':
     local_connection, local_cursor = open_cursor_connection("localhost", "root", "mysql@123")
