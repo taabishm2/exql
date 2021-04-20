@@ -1,0 +1,5 @@
+mysql_connector_repackaged==0.3.1
+
+xlrd~=2.0.1
+mysql-connector-python~=8.0.23
+setuptools~=45.2.0

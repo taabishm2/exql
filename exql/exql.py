@@ -1,5 +1,6 @@
 import dao
 import csv
+import xlrd
 import configparser
 
 from pathlib import Path
@@ -10,7 +11,7 @@ config.read('../config.properties')
 strict_structure = config.get('directory_validation', 'validation.strict_structure')
 
 
-def validate_get_fields_for_table_create(file, min_rows):
+def validate_get_csv_fields_for_table_create(file, min_rows):
     """
     Check and return rows of csv as list of tuples
     :param file: .csv file
@@ -18,22 +19,43 @@ def validate_get_fields_for_table_create(file, min_rows):
     :return: True if validated, otherwise throw exception
     """
     if not file.is_file() or file.suffix != ".csv":
-        raise Exception("The provided path " + file + " does not point to a csv file")
+        raise Exception("The provided path " + file + " does not point to a .csv file")
 
     csv_file = open(file, "r")
     row_list = list(csv.reader(csv_file))
 
     if len(row_list) < min_rows:
-        raise Exception(str(file) + " does not possess the required csv structure. Refer to the sample csvs")
+        raise Exception(str(file) + " does not possess the required csv structure. Refer to the sample files")
 
     return row_list
 
 
-def validate_and_get_csvs(base_dir):
+def validate_get_xlsx_fields_for_table_create(file, min_rows):
     """
-    Validate is the :param base_dir has the proper structure and returns the list of csv files contained
+    Check and return rows of csv as list of tuples
+    :param file: .xlsx file
+    :param min_rows: Minimum number of rows the .xlsx must contain
+    :return: True if validated, otherwise throw exception
+    """
+    if not file.is_file() or file.suffix != ".xlsx":
+        raise Exception("The provided path " + file + " does not point to a .xlsx file")
+
+    workbook = xlrd.open_workbook(file)
+    sheet = workbook.sheet_by_index(0)
+
+    row_list = [sheet.row_values(i) for i in range(sheet.nrows)]
+
+    if len(row_list) < min_rows:
+        raise Exception(str(file) + " does not possess the required csv structure. Refer to the sample files")
+
+    return row_list
+
+
+def validate_and_get_data(base_dir):
+    """
+    Validate is the :param base_dir has the proper structure and returns the list of .csv/.xlsx files contained
     :param base_dir: Path object referencing the directory specified
-    :return: List of csv files within the directory
+    :return: List of .csv/.xlsx files within the directory
     """
     if not base_dir.exists() or not base_dir.is_dir():
         raise Exception("The path must point to a valid, existing directory")
@@ -47,7 +69,7 @@ def validate_and_get_csvs(base_dir):
 
 def get_file_map(base_dir):
     """
-    Validate and get map of csv file name to list of rows within the csv
+    Validate and get map of .csv/.xlsx file name to list of rows within the csv
     :param base_dir: Base directory where csvs are stored
     :return: Map from file name to list of rows in file
     """
@@ -55,20 +77,18 @@ def get_file_map(base_dir):
     file_map = dict()
 
     if not files:
-        raise Exception("No csv files are present in the specified directory")
+        raise Exception("No .csv/.xlsx files are present in the specified directory")
 
     for file in files:
-        if strict_structure and file.suffix != ".csv":
-            raise Exception("Files with extensions other than .csv cannot be present in specified directory")
+        if strict_structure and (file.suffix != ".csv" and file.suffix != ".xlsx"):
+            raise Exception("Files other than .csv or .xlsx files cannot be present in the directory")
 
-        if file.suffix == ".csv":
-            file_map[file.stem] = validate_get_fields_for_table_create(file, 3)
+        file_map[file.stem] = validate_get_rows(file, 3)
 
     return file_map
 
 
 def open_cursor_and_connection():
-    # TODO: Read from props
     return dao.open_cursor_connection(config.get('database_connection', 'db.host'),
                                       config.get('database_connection', 'db.username'),
                                       config.get('database_connection', 'db.password'),
@@ -114,19 +134,19 @@ def extract_column_names(row_list):
     return row_list[0]
 
 
-def create_db_from_directory(directory_path="/home/user/Desktop/exql/exql/test_dir"):
+def create_db_from_directory(directory_path):
     """
-    Create a Schema based on a directory specified. All valid csvs within the directory are converted into tables.
-    If any data is present in the csv, the rows are also populated
+    Create a Schema based on a directory specified. All valid .csv/.xsls within the directory are converted into tables.
+    If any data is present in the .csv/.xlsx, the rows are also populated
     :return: None
     """
     base_dir = Path(directory_path)
-    csv_file_map = validate_and_get_csvs(base_dir)
+    input_file_map = validate_and_get_data(base_dir)
 
     connection, cursor = open_cursor_and_connection()
     dao.create_database(cursor, base_dir.name)
-    for file_name in csv_file_map:
-        file_content = csv_file_map[file_name]
+    for file_name in input_file_map:
+        file_content = input_file_map[file_name]
         dao.create_table(cursor, base_dir.name, file_name, extract_table_create_data(file_content))
 
         data_rows = extract_table_data(file_content, 4)
@@ -136,25 +156,39 @@ def create_db_from_directory(directory_path="/home/user/Desktop/exql/exql/test_d
     dao.close_cursor_connection(cursor, connection)
 
 
-def create_table_from_csv(db_name, csv_file_path="/home/user/Desktop/exql/exql/file3.csv"):
+def validate_get_rows(file_path, min_rows):
     """
-    Create a Table from the specified csv file with name same as csv file name
+    Read .csv or .xlsx as list of rows
+    :param file_path: Path to .csv or .xlsx to be read
+    :param min_rows: Minimum rows needed in the filw
+    :return: List of rows
+    """
+    if file_path.suffix == ".csv":
+        return validate_get_csv_fields_for_table_create(file_path, min_rows)
+
+    if file_path.suffix == ".xlsx":
+        return validate_get_xlsx_fields_for_table_create(file_path, min_rows)
+
+
+def create_table_from_csv(db_name, source_file_path):
+    """
+    Create a table from the specified .csv/.xlsx file with name same as .csv/.xlsx file name
     :return: None
     """
-    base_dir = Path(csv_file_path)
-    csv_file_data = validate_get_fields_for_table_create(base_dir, 3)
+    base_dir = Path(source_file_path)
+    source_file_data = validate_get_rows(base_dir, 3)
 
     connection, cursor = open_cursor_and_connection()
-    dao.create_table(cursor, db_name, base_dir.stem, extract_table_create_data(csv_file_data))
+    dao.create_table(cursor, db_name, base_dir.stem, extract_table_create_data(source_file_data))
 
-    data_rows = extract_table_data(csv_file_data, 4)
+    data_rows = extract_table_data(source_file_data, 4)
     if data_rows:
-        dao.insert_rows(cursor, connection, db_name, base_dir.stem, extract_column_names(csv_file_data), data_rows)
+        dao.insert_rows(cursor, connection, db_name, base_dir.stem, extract_column_names(source_file_data), data_rows)
 
     dao.close_cursor_connection(cursor, connection)
 
 
-def insert_in_table(db_name, csv_file_path="/home/user/Desktop/exql/exql/test_dir/file1.csv", table_name=None):
+def insert_in_table(db_name, csv_file_path, table_name=None):
     """
     Insert into existing table with name :param table_name. If table_name not passed, used csv file name as table name
     :param db_name: Name of database
@@ -163,7 +197,7 @@ def insert_in_table(db_name, csv_file_path="/home/user/Desktop/exql/exql/test_di
     :return: None
     """
     base_dir = Path(csv_file_path)
-    csv_file_data = validate_get_fields_for_table_create(base_dir, 2)
+    csv_file_data = validate_get_rows(base_dir, 2)
 
     if not table_name:
         table_name = base_dir.stem
@@ -234,7 +268,7 @@ def delete_from_db(db_name, deletion_csv, table_name=None):
     :return: None
     """
     base_dir = Path(deletion_csv)
-    csv_file_data = validate_get_fields_for_table_create(base_dir, 2)
+    csv_file_data = validate_get_rows(base_dir, 2)
 
     if not table_name:
         table_name = base_dir.stem
@@ -283,9 +317,9 @@ def write_db_to_dir(destination_path, db_name, table_list=None):
 
 
 if __name__ == '__main__':
-    #create_db_from_directory()
+    create_db_from_directory("/home/user/Desktop/exql/exql/test_dir")
     #create_table_from_csv("test_dir")
     #insert_in_table("test_dir", "/home/user/Desktop/exql/exql/test_dir/file3.csv", "file1")
     #select_into_csv("test_dir", "SELECT * FROM file1 LIMIT 2;", "/home/user/Desktop/exql/exql/test_dir", "result.csv")
     #delete_from_db("test_dir","/home/user/Desktop/exql/exql/test_dir/file3.csv", "file1")
-    write_db_to_dir("/home/user/Desktop/exql/exql/test_dir/", "test_dir")
+    #write_db_to_dir("/home/user/Desktop/exql/exql/test_dir/", "test_dir")
