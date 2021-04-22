@@ -129,3 +129,5 @@ dmypy.json
 .pyre/
 
 .idea/
+setup.cfg
+pyproject.toml
