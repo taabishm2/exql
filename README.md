@@ -3,14 +3,14 @@ Persist Excel/CSV sheets to MySQL (and vice versa)
 # Installation
 ```pip install exql```
 # How it works
-Auto convert a directory with csv/xslx files to a MySQL database, or vice versa, using the logic<br>
+Convert a directory into a database and the .csv and .xls files in that directory to tables (or vice versa i.e. database/table to director/.csv). Currently, only .csv/.xsl to MySQL conversion is supported.<br>
 ```
 directory <==> database
-CSV/Excel sheet in directory <==> table in database 
+CSV/Excel sheets in directory <==> tables in database 
 ```
 For example,
 ```
-MyDir           <->     CREATE DATABASE MyDir;
+MyDir           <->     CREATE SCHEMA MyDir;
 |-file1.csv     <->     CREATE TABLE file1 (...);
 |-file2.xlsx    <->     CREATE TABLE file2 (...);
 ```
@@ -21,7 +21,7 @@ In `config.properties`, specify host, port, username and password of database wi
 Run `pip install .` in root directory
 ### 3. Import and use
 Import using `from exql import exql`
-# Methods
+# Usage
 | Method  | Description |
 | ------------- | ------------- |
 | create_db_from_directory  | Create MySQL DB with name same as the directory name and tables built using .csv/.xlsx files present within the directory  |
@@ -30,3 +30,5 @@ Import using `from exql import exql`
 |select_into_csv|Select rows read from a DB using the provided query into a .csv|
 |delete_from_db|Delete rows matching column-value pairs provided in .csv from MySQL table|
 |write_db_to_dir|Create a directory containing all tables of a DB saved as .csv files|
+### Note
+Refer to the `resources` folder for csv/xsl file templates needed for table creation/insertion/deletion

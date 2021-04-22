@@ -1,6 +1,6 @@
-from logger import logger
+from exql.logger import logger
 import mysql.connector
-from sql import MySql
+from exql.sql import MySql
 
 
 def open_cursor_connection(host, username, password, port):
@@ -191,22 +191,24 @@ def get_all_table_names(cursor, db_name):
 
 
 if __name__ == '__main__':
-    local_connection, local_cursor = open_cursor_connection("localhost", "root", "mysql@123")
-
-    create_database(local_cursor, "meraApnaDb")
-
-    field_data_list = [{"name": "student_name", "type": "VARCHAR(20)", "modifiers": "UNIQUE NOT NULL"},
-                       {"name": "student_roll", "type": "INT", "modifiers": "PRIMARY KEY AUTO_INCREMENT"}]
-
-    # create_table(local_cursor, "meraApnaDb", "meraTable", field_data_list)
-
-    column_name_list = ("student_name", "student_roll")
-    row_data_list = [("\"stua\"", 1253), ("\"stub\"", 5342), ("\"stuc\"", 3856)]
-
-    # insert_rows(local_cursor, local_connection, "meraApnaDb", "meraTable", column_name_list, row_data_list)
-
-    # select_rows(local_cursor, "meraApnaDb", "select * from meraTable;")
-
-    # print(get_delete_rows_data(["a", "b", "c"], [[1, 2, 3], ["\"x\"", "\"y\"", "\"z\""]]))
-
-    delete_rows(local_cursor, local_connection, "meraApnaDb", "meraTable", ("student_name",), [("\"stua\"",), ("\"stub\"",)])
+    # local_connection, local_cursor = open_cursor_connection("localhost", "root", "mysql@123")
+    # 
+    # create_database(local_cursor, "myTestDb")
+    # 
+    # field_data_list = [{"name": "student_name", "type": "VARCHAR(20)", "modifiers": "UNIQUE NOT NULL"},
+    #                    {"name": "student_roll", "type": "INT", "modifiers": "PRIMARY KEY AUTO_INCREMENT"}]
+    # 
+    # # create_table(local_cursor, "myTestDb", "myTestTable", field_data_list)
+    # 
+    # column_name_list = ("student_name", "student_roll")
+    # row_data_list = [("\"stua\"", 1253), ("\"stub\"", 5342), ("\"stuc\"", 3856)]
+    # 
+    # # insert_rows(local_cursor, local_connection, "myTestDb", "myTestTable", column_name_list, row_data_list)
+    # 
+    # # select_rows(local_cursor, "myTestDb", "select * from myTestTable;")
+    # 
+    # # print(get_delete_rows_data(["a", "b", "c"], [[1, 2, 3], ["\"x\"", "\"y\"", "\"z\""]]))
+    # 
+    # delete_rows(local_cursor, local_connection, "myTestDb", "myTestTable", ("student_name",), [("\"stua\"",), ("\"stub\"",)])
+    
+    pass

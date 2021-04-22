@@ -1,0 +1,7 @@
+dept_id,dept_name
+INT,VARCHAR(100)
+PRIMARY KEY,NOT NULL
+,
+100 + 1,(SELECT UPPER('economics'))
+200 * 2,'SOCIOLOGY'
+300 / 3,'BIOLOGY'

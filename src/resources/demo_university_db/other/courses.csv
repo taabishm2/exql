@@ -1,0 +1,7 @@
+course_id,course_name,instructor
+INT,VARCHAR(100),VARCHAR(100)
+PRIMARY KEY,UNIQUE NOT NULL,NOT NULL
+,
+1,'Course_A','Instructor_A'
+2,'Course_B','Instructor_B'
+3,'Course_C','Instructor_C'
