@@ -3,7 +3,7 @@ Persist Excel/CSV sheets to MySQL (and vice versa)
 # Installation
 ```pip install exql```
 # How it works
-Convert a directory into a database and the .csv and .xls files in that directory to tables (or vice versa i.e. database/table to director/.csv). Currently, only .csv/.xsl to MySQL conversion is supported.<br>
+Convert a directory into a database and the .csv and .xls files in that directory to tables (or vice versa i.e. database/table to director/.csv). Currently, only conversion between .csv/.xsl and MySQL is supported.<br>
 ```
 directory <==> database
 CSV/Excel sheets in directory <==> tables in database 
@@ -35,7 +35,7 @@ Similarly, other methds can be used to create individual tables, delete rows, et
 |delete_from_db|Delete rows matching column-value pairs provided in .csv from MySQL table|
 |write_db_to_dir|Create a directory containing all tables of a DB saved as .csv files|
 ### Note
-- In the .xsl or .csc files, SQL commands can be provided directly. Thus, the .csv or .xsl can have SQL queries as follows
+- In the .xsl or .csv files, SQL commands can be provided directly. Thus, the .csv or .xsl can have SQL queries as follows
 
 | student_id  | name | age | added_on |
 | ------------- | ------------- | ------------- |------------- |
